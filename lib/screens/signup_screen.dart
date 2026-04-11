@@ -1,14 +1,25 @@
-// Signup Screen - User registration interface with comprehensive validation
-// Provides account creation functionality with form validation, password confirmation, and Gmail requirement
-// Includes success feedback and navigation to login screen after registration
+// SignupScreen - New admin account creation screen
+// Responsibilities:
+//   1. Collects name, email, password, and confirm password
+//   2. Validates all fields before allowing submission
+//   3. On success, shows a snackbar and navigates back to LoginScreen
+//   4. Uses Consumer<ThemeProvider> to rebuild when dark/light theme changes
+//   5. AppTheme methods provide all colors and decorations for theme consistency
+// Note: This is a mock screen - no Firebase account is actually created
+//       It is only used for first-time setup demonstration
+// Validation Rules:
+//   Name     : Cannot be empty
+//   Email    : Must end with @gmail.com
+//   Password : Minimum 6 characters
+//   Confirm  : Must match password
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'login_screen.dart'; // Login screen for navigation after signup
-import '../theme_provider.dart'; // Theme management provider
-import '../app_theme.dart'; // App-wide theme constants and styles
+import 'login_screen.dart';      // Navigates here after successful signup
+import '../theme_provider.dart'; // Dark/light theme state
+import '../app_theme.dart';      // Centralized theme colors and styles
 
-// StatefulWidget for Signup Screen with form validation and registration
+// StatefulWidget needed for form validation state and password visibility toggles
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
@@ -16,263 +27,227 @@ class SignupScreen extends StatefulWidget {
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
-// State class for Signup Screen with form controllers and comprehensive validation
 class _SignupScreenState extends State<SignupScreen> {
-  // Text editing controllers for all form inputs
-  final TextEditingController nameController = TextEditingController(); // Full name input
-  final TextEditingController emailController = TextEditingController(); // Email input
-  final TextEditingController passController = TextEditingController(); // Password input
-  final TextEditingController confirmPassController = TextEditingController(); // Password confirmation
 
-  // Error message variables for form validation
-  String? nameError; // Name validation error
-  String? emailError; // Email validation error
-  String? passError; // Password validation error
-  String? confirmPassError; // Password confirmation error
+  // Text controllers for each form field
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passController = TextEditingController();
+  final confirmPassController = TextEditingController();
 
-  // Comprehensive form validation method with multiple field checks
-  // Validates name, email format, password strength, and password confirmation
-  void validateAndSignup() {
-    setState(() {
-      // Get trimmed input values
-      String name = nameController.text.trim();
-      String email = emailController.text.trim();
-      String password = passController.text;
-      String confirmPassword = confirmPassController.text;
+  bool _obscurePass = true;    // Controls password field visibility
+  bool _obscureConfirm = true; // Controls confirm password field visibility
 
-      // Name validation - required field check
-      nameError = name.isEmpty ? "Name is required" : null;
-      
-      // Email validation - must end with @gmail.com
-      if (!email.endsWith('@gmail.com')) {
-        emailError = "Email must end with @gmail.com";
-      } else {
-        emailError = null; // Clear error if validation passes
-      }
+  // Validation error messages - null means no error for that field
+  String? nameError;
+  String? emailError;
+  String? passError;
+  String? confirmPassError;
 
-      // Password strength validation - minimum 6 characters
-      if (password.length < 6) {
-        passError = "Password must be at least 6 characters";
-      } else {
-        passError = null; // Clear error if validation passes
-      }
-
-      // Password confirmation validation - must match original password
-      if (password != confirmPassword) {
-        confirmPassError = "Passwords do not match";
-      } else {
-        confirmPassError = null; // Clear error if passwords match
-      }
-    });
-
-    // Proceed with registration if all validations pass
-    if (nameError == null && emailError == null && passError == null && confirmPassError == null) {
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Account created successfully!"),
-          backgroundColor: Color(0xFF00E5FF), // Accent color background
-        ),
-      );
-      // Navigate to login screen after successful registration
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    }
+  @override
+  void dispose() {
+    // Dispose all controllers to free memory when screen is removed
+    nameController.dispose();
+    emailController.dispose();
+    passController.dispose();
+    confirmPassController.dispose();
+    super.dispose();
   }
 
-  // Main build method - Creates the complete signup screen interface
+  // Validates all fields and processes signup if valid
+  void _signup() {
+    // Run all validations in a single setState to avoid multiple rebuilds
+    setState(() {
+      nameError = nameController.text.trim().isEmpty ? 'Name is required' : null;
+      emailError = !emailController.text.trim().endsWith('@gmail.com')
+          ? 'Email must end with @gmail.com'
+          : null;
+      passError = passController.text.length < 6
+          ? 'Password must be at least 6 characters'
+          : null;
+      // Confirm password must exactly match the password field
+      confirmPassError = passController.text != confirmPassController.text
+          ? 'Passwords do not match'
+          : null;
+    });
+
+    // Stop if any validation failed - errors are shown below each field
+    if (nameError != null || emailError != null || passError != null || confirmPassError != null) return;
+
+    // All validations passed - show success and go to login
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Admin account created! Please login.'),
+          backgroundColor: Colors.green),
+    );
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
+  // Reusable text field builder used for all form inputs
+  // Parameters:
+  //   ctrl       : TextEditingController for this field
+  //   hint       : Placeholder text shown when field is empty
+  //   icon       : Leading icon shown on the left
+  //   obscure    : Whether this is a password field (hides text)
+  //   hasToggle  : Whether to show the eye icon for visibility toggle
+  //   isObscured : Current visibility state (true = hidden)
+  //   onToggle   : Callback when eye icon is tapped
+  //   type       : Keyboard type (text, email, etc.)
+  //   error      : Validation error message shown below field
+  Widget _buildField(
+    TextEditingController ctrl,
+    String hint,
+    IconData icon, {
+    bool obscure = false,
+    bool hasToggle = false,
+    bool isObscured = false,
+    VoidCallback? onToggle,
+    TextInputType type = TextInputType.text,
+    String? error,
+  }) {
+    return TextField(
+      controller: ctrl,
+      obscureText: obscure ? isObscured : false, // Only hide text if obscure is true
+      keyboardType: type,
+      style: TextStyle(color: AppTheme.primaryTextColor(context)),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.6)),
+        prefixIcon: Icon(icon, color: AppTheme.accentColor(context)),
+        // Eye icon only shown for password fields (hasToggle = true)
+        suffixIcon: hasToggle
+            ? IconButton(
+                icon: Icon(
+                  isObscured ? Icons.visibility_off : Icons.visibility,
+                  color: AppTheme.secondaryTextColor(context),
+                ),
+                onPressed: onToggle,
+              )
+            : null,
+        errorText: error, // Validation error shown below the field
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3)),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: AppTheme.accentColor(context)),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Consumer for ThemeProvider to access theme settings
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return Scaffold(
-          backgroundColor: AppTheme.backgroundColor(context), // Theme-based background
+          backgroundColor: AppTheme.backgroundColor(context),
           body: Container(
-            decoration: AppTheme.backgroundFilter(context),
+            decoration: AppTheme.backgroundFilter(context), // Theme-based background
             child: Center(
-                child: SingleChildScrollView( // Scrollable content for keyboard
-                  child: Padding(
-                    padding: const EdgeInsets.all(24), // Screen padding
-                    child: Column(
-                      children: [
-                        // App logo with theme-based image
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: themeProvider.isDarkMode 
-                                ? Colors.black.withValues(alpha: 0.8)
-                                : Colors.white.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Image.asset(
-                            themeProvider.isDarkMode
-                                ? "assets/images/logo_dark.png"
-                                : "assets/images/logo_light.png",
-                            height: 100,
-                          ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // App logo - switches between dark and light version
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: themeProvider.isDarkMode
+                              ? Colors.black.withValues(alpha: 0.8)
+                              : Colors.white.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        const SizedBox(height: 20),
-                        // Screen title
-                        Text(
-                          "Create Account", // Title text
-                          style: TextStyle(
-                            color: AppTheme.accentColor(context),
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Image.asset(
+                          themeProvider.isDarkMode
+                              ? 'assets/images/logo_dark.png'
+                              : 'assets/images/logo_light.png',
+                          height: 100,
+                          fit: BoxFit.contain,
                         ),
-                        const SizedBox(height: 30),
+                      ),
+                      const SizedBox(height: 20),
 
-                        // Full Name Input Field with validation
-                        TextField(
-                          controller: nameController, // Name controller
-                          style: TextStyle(color: AppTheme.primaryTextColor(context)),
-                          decoration: InputDecoration(
-                            hintText: "Full Name", // Placeholder text
-                            hintStyle: TextStyle(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.6)),
-                            prefixIcon: Icon(
-                              Icons.person, // Person icon
-                              color: AppTheme.accentColor(context),
-                            ),
-                            errorText: nameError, // Show validation error
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3)),
-                            ),
-                            focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.accentColor(context)), // Accent color when focused
+                      // Screen title
+                      Text(
+                        'Create Admin Account',
+                        style: TextStyle(
+                          color: AppTheme.accentColor(context),
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Info badge indicating this is for first-time admin setup only
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                        ),
+                        child: const Text(
+                          'First-time setup — Admin only',
+                          style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Full name input field
+                      _buildField(nameController, 'Full Name', Icons.person, error: nameError),
+                      const SizedBox(height: 15),
+
+                      // Email input field - validates @gmail.com format
+                      _buildField(emailController, 'yourname@gmail.com', Icons.email,
+                          type: TextInputType.emailAddress, error: emailError),
+                      const SizedBox(height: 15),
+
+                      // Password field with eye icon toggle
+                      _buildField(passController, '6+ characters password', Icons.lock,
+                          obscure: true,
+                          hasToggle: true,
+                          isObscured: _obscurePass,
+                          onToggle: () => setState(() => _obscurePass = !_obscurePass),
+                          error: passError),
+                      const SizedBox(height: 15),
+
+                      // Confirm password field - must match password field
+                      _buildField(confirmPassController, 'Confirm password', Icons.lock_outline,
+                          obscure: true,
+                          hasToggle: true,
+                          isObscured: _obscureConfirm,
+                          onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                          error: confirmPassError),
+                      const SizedBox(height: 30),
+
+                      // Submit button - triggers _signup() validation and processing
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.accentColor(context),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          onPressed: _signup,
+                          child: Text(
+                            'Create Admin Account',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: themeProvider.isDarkMode ? Colors.black : Colors.white,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 15),
-
-                        // Email Input Field with Gmail validation
-                        TextField(
-                          controller: emailController, // Email controller
-                          style: TextStyle(color: AppTheme.primaryTextColor(context)),
-                          keyboardType: TextInputType.emailAddress, // Email keyboard type
-                          decoration: InputDecoration(
-                            hintText: "yourname@gmail.com", // Placeholder text
-                            hintStyle: TextStyle(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.6)),
-                            prefixIcon: Icon(
-                              Icons.email, // Email icon
-                              color: AppTheme.accentColor(context),
-                            ),
-                            errorText: emailError, // Show validation error
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3)),
-                            ),
-                            focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.accentColor(context)), // Accent color when focused
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-
-                        // Password Input Field with strength validation
-                        TextField(
-                          controller: passController, // Password controller
-                          obscureText: true, // Hide password text
-                          style: TextStyle(color: AppTheme.primaryTextColor(context)),
-                          decoration: InputDecoration(
-                            hintText: "6+ digits password", // Placeholder text
-                            hintStyle: TextStyle(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.6)),
-                            prefixIcon: Icon(
-                              Icons.lock, // Lock icon
-                              color: AppTheme.accentColor(context),
-                            ),
-                            errorText: passError, // Show validation error
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3)),
-                            ),
-                            focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.accentColor(context)), // Accent color when focused
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-
-                        // Confirm Password Input Field with matching validation
-                        TextField(
-                          controller: confirmPassController, // Confirm password controller
-                          obscureText: true, // Hide password text
-                          style: TextStyle(color: AppTheme.primaryTextColor(context)),
-                          decoration: InputDecoration(
-                            hintText: "Confirm password", // Placeholder text
-                            hintStyle: TextStyle(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.6)),
-                            prefixIcon: Icon(
-                              Icons.lock_outline, // Lock outline icon
-                              color: AppTheme.accentColor(context),
-                            ),
-                            errorText: confirmPassError, // Show validation error
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3)),
-                            ),
-                            focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.accentColor(context)), // Accent color when focused
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 25),
-
-                        // Sign Up Button - Full width with theme styling
-                        SizedBox(
-                          width: double.infinity, // Full width button
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.accentColor(context), // Theme accent color
-                              padding: const EdgeInsets.symmetric(vertical: 16), // Vertical padding
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14), // Rounded corners
-                              ),
-                            ),
-                            onPressed: validateAndSignup, // Call validation method
-                            child: Text(
-                              "Sign Up", // Button text
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: themeProvider.isDarkMode ? Colors.black : Colors.white, // Dynamic text color
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-
-                        // Login Navigation Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Already have an account? ", // Prompt text
-                              style: TextStyle(color: AppTheme.secondaryTextColor(context)),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                // Navigate to login screen
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                                );
-                              },
-                              child: Text(
-                                "Login", // Navigation text
-                                style: TextStyle(
-                                  color: AppTheme.accentColor(context),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
+          ),
         );
       },
     );

@@ -1,5 +1,5 @@
-name: flutter_application_2
-description: "A new Flutter project."
+name: holoserve
+description: "HoloServe - Restaurant Hologram Management System"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -17,6 +17,8 @@ dependencies:
   firebase_auth: ^5.7.0
   provider: ^6.1.1
   shared_preferences: ^2.2.2
+  image_picker: ^1.1.2
+  firebase_storage: ^12.3.7
 
 dev_dependencies:
   flutter_test:

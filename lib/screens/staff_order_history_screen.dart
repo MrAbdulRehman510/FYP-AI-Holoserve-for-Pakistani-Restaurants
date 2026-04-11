@@ -1,18 +1,33 @@
-// Staff Order History Screen - Display order history for staff users
-// Shows completed and pending orders with status indicators
-// Features consistent design with custom app bar and order cards
+// ============================================================
+// StaffOrderHistoryScreen - Staff ke liye order history ka screen
+// Kaam: Mock orders ki list dikhata hai
+// Order Status:
+//   - Delivered -> green color
+//   - Pending   -> orange color
+//   Consumer<ThemeProvider> se dark/light theme ke saath rebuild hota hai
+//   AppTheme.backgroundFilter() se theme-based background apply hoti hai
+// Note: Hardcoded mock data - Firebase nahi use hota
+// ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../theme_provider.dart';
 import '../app_theme.dart';
 
-// StatelessWidget for displaying staff order history
 class StaffOrderHistoryScreen extends StatelessWidget {
   const StaffOrderHistoryScreen({super.key});
 
-  // Custom app bar with order history theme and consistent styling
-  PreferredSizeWidget customTopBar(BuildContext context, String title) {
+  static final List<Map<String, dynamic>> _orders = [
+    {'id': 'ORD-A1B2C', 'items': 3, 'price': 1250, 'time': '09:15 AM', 'status': 'Delivered'},
+    {'id': 'ORD-D3E4F', 'items': 1, 'price': 450, 'time': '10:30 AM', 'status': 'Delivered'},
+    {'id': 'ORD-G5H6I', 'items': 5, 'price': 2800, 'time': '11:45 AM', 'status': 'Delivered'},
+    {'id': 'ORD-J7K8L', 'items': 2, 'price': 900, 'time': '12:20 PM', 'status': 'Pending'},
+    {'id': 'ORD-M9N0O', 'items': 4, 'price': 1750, 'time': '01:10 PM', 'status': 'Delivered'},
+    {'id': 'ORD-P1Q2R', 'items': 2, 'price': 680, 'time': '02:05 PM', 'status': 'Delivered'},
+    {'id': 'ORD-S3T4U', 'items': 6, 'price': 3200, 'time': '03:30 PM', 'status': 'Pending'},
+  ];
+
+  PreferredSizeWidget _topBar(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: false,
       toolbarHeight: 90,
@@ -21,10 +36,7 @@ class StaffOrderHistoryScreen extends StatelessWidget {
       flexibleSpace: Container(
         decoration: BoxDecoration(
           gradient: AppTheme.appBarGradient(context),
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
-          ),
+          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
         ),
         child: SafeArea(
           child: Padding(
@@ -32,22 +44,11 @@ class StaffOrderHistoryScreen extends StatelessWidget {
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_ios_new,
-                    color: AppTheme.primaryTextColor(context),
-                    size: 20,
-                  ),
+                  icon: Icon(Icons.arrow_back_ios_new, color: AppTheme.primaryTextColor(context), size: 20),
                   onPressed: () => Navigator.pop(context),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryTextColor(context),
-                  ),
-                ),
+                Text('Order History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryTextColor(context))),
                 const Spacer(),
                 Icon(Icons.history_rounded, color: AppTheme.accentColor(context)),
               ],
@@ -58,127 +59,51 @@ class StaffOrderHistoryScreen extends StatelessWidget {
     );
   }
 
-  // Main build method with order history display
   @override
   Widget build(BuildContext context) {
-    // Sample order data with different statuses and details
-    final List<Map<String, dynamic>> orders = [
-      {
-        "id": "#ORD-9921",
-        "table": "T-2",
-        "amount": "Rs. 2,500",
-        "status": "Delivered",
-        "time": "10 mins ago",
-      },
-      {
-        "id": "#ORD-9920",
-        "table": "T-4",
-        "amount": "Rs. 1,850",
-        "status": "Pending",
-        "time": "25 mins ago",
-      },
-      {
-        "id": "#ORD-9919",
-        "table": "T-1",
-        "amount": "Rs. 4,200",
-        "status": "Delivered",
-        "time": "1 hour ago",
-      },
-    ];
-
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) => Scaffold(
         extendBodyBehindAppBar: true,
-        // Custom app bar with order history theme
-        appBar: customTopBar(context, "Order History"),
+        appBar: _topBar(context),
         body: Container(
           width: double.infinity,
           height: double.infinity,
           decoration: AppTheme.backgroundFilter(context),
           child: ListView.builder(
-            // Adjusted padding for custom app bar spacing
             padding: const EdgeInsets.fromLTRB(20, 130, 20, 20),
-            itemCount: orders.length,
+            itemCount: _orders.length,
             itemBuilder: (context, index) {
-              final order = orders[index];
-              bool isDelivered = order['status'] == "Delivered";
-
-              // Individual order card with status-based styling
+              final o = _orders[index];
+              final isDelivered = o['status'] == 'Delivered';
               return Container(
                 margin: const EdgeInsets.only(bottom: 15),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: AppTheme.cardColor(context),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color:
-                        (isDelivered ? Colors.greenAccent : Colors.orangeAccent)
-                        .withValues(alpha: 0.3),
-                  ),
+                  border: Border.all(color: (isDelivered ? Colors.greenAccent : Colors.orangeAccent).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    // Status indicator icon
                     CircleAvatar(
-                      backgroundColor:
-                          (isDelivered ? Colors.greenAccent : Colors.orangeAccent)
-                          .withValues(alpha: 0.1),
-                      child: Icon(
-                        isDelivered
-                            ? Icons.check_circle_outline
-                            : Icons.pending_actions,
-                        color: isDelivered
-                            ? Colors.greenAccent
-                            : Colors.orangeAccent,
-                      ),
+                      backgroundColor: (isDelivered ? Colors.greenAccent : Colors.orangeAccent).withValues(alpha: 0.1),
+                      child: Icon(isDelivered ? Icons.check_circle_outline : Icons.pending_actions, color: isDelivered ? Colors.greenAccent : Colors.orangeAccent),
                     ),
                     const SizedBox(width: 15),
-                    // Order details section
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            order['id'],
-                            style: TextStyle(
-                              color: AppTheme.primaryTextColor(context),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Table: ${order['table']} • ${order['time']}",
-                            style: TextStyle(
-                              color: AppTheme.secondaryTextColor(context),
-                              fontSize: 13,
-                            ),
-                          ),
+                          Text('#${o['id']}', style: TextStyle(color: AppTheme.primaryTextColor(context), fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text('${o['items']} Items • ${o['time']}', style: TextStyle(color: AppTheme.secondaryTextColor(context), fontSize: 13)),
                         ],
                       ),
                     ),
-                    // Amount and status section
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          order['amount'],
-                          style: TextStyle(
-                            color: AppTheme.primaryTextColor(context),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          order['status'],
-                          style: TextStyle(
-                            color: isDelivered
-                                ? Colors.greenAccent
-                                : Colors.orangeAccent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text('Rs ${o['price']}', style: TextStyle(color: AppTheme.primaryTextColor(context), fontWeight: FontWeight.bold)),
+                        Text(o['status'], style: TextStyle(color: isDelivered ? Colors.greenAccent : Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ],

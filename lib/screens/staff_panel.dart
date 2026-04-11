@@ -1,6 +1,18 @@
-// Staff Panel - Operational control panel for staff members
-// Provides access to staff-specific functions: menu management, hologram control, feedback, etc.
-// Includes quick actions for daily staff operations and profile access
+// StaffPanel - Main control panel for staff users
+// Responsibilities:
+//   1. Displays all daily operation cards for staff members
+//   2. Back button navigates to LoginScreen (not previous screen)
+//   3. Hologram card icon and color change based on active/inactive state
+//   4. Uses Consumer<ThemeProvider> to rebuild when dark/light theme changes
+//   5. AppTheme methods provide all colors and decorations for theme consistency
+// Navigation Cards:
+//   - Menu Management    -> MenuManagementScreen  (view/edit menu)
+//   - Update Availability -> StaffOutOfStockScreen (mark items in/out of stock)
+//   - Hologram Projector -> HologramControlScreen  (power, volume, language)
+//   - Customer Feedback  -> CustomerFeedbackScreen (view only, no delete)
+//   - Table Status       -> StaffTableStatusScreen (Free/Occupied/Reserved)
+//   - Order History      -> StaffOrderHistoryScreen (delivered/pending orders)
+//   - My Profile         -> StaffProfileScreen     (view info, request edits)
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +25,8 @@ import 'staff_order_history_screen.dart'; // Order history viewing
 import 'menu_management_screen.dart'; // Menu management interface
 import 'staff_profile_screen.dart'; // Staff profile access
 import '../theme_provider.dart'; // Theme management provider
-import '../app_theme.dart'; // App-wide theme constants and styles
+import '../app_theme.dart';
+import 'login_screen.dart';
 
 // StatefulWidget for Staff Panel with operational controls
 class StaffPanel extends StatefulWidget {
@@ -56,7 +69,10 @@ class _StaffPanelState extends State<StaffPanel> {
                     color: AppTheme.primaryTextColor(context),
                     size: 20,
                   ),
-                  onPressed: () => Navigator.pop(context), // Navigate back
+                  onPressed: () => Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 // Screen title
@@ -150,9 +166,9 @@ class _StaffPanelState extends State<StaffPanel> {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return Scaffold(
-          backgroundColor: AppTheme.backgroundColor(context), // Theme-based background
-          extendBodyBehindAppBar: true, // Allow body to extend behind app bar
-          appBar: customTopBar(context, "Staff Control Panel"), // Custom app bar
+          backgroundColor: AppTheme.backgroundColor(context),
+          extendBodyBehindAppBar: true,
+          appBar: customTopBar(context, "Staff Control Panel"),
           body: Container(
             width: double.infinity, // Full width
             height: double.infinity, // Full height
@@ -163,18 +179,19 @@ class _StaffPanelState extends State<StaffPanel> {
                 child: Column(
                   children: [
                     // Section header for quick actions
-                    Align(
+                    const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         "Quick Actions",
                         style: TextStyle(
-                          color: AppTheme.secondaryTextColor(context),
+                          color: Colors.grey,
                           fontSize: 16,
-                          letterSpacing: 1, // Letter spacing for better readability
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 15),
 
                     // Menu Management Action Card
                     staffActionCard(

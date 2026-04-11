@@ -1,15 +1,20 @@
-// Hologram Control Screen - Device control panel for hologram projection system
-// Manages power, volume, language settings, and voice script configuration
-// Integrates with Firebase for real-time device state management
+// HologramControlScreen - Hologram device control panel for staff
+// Responsibilities:
+//   1. Master Power switch - toggles hologram projection on/off (local state)
+//   2. Animated icon changes color based on power state (accent = on, dim = off)
+//   3. Audio Volume slider - adjustable from 0% to 100% (local state)
+//   4. Language dropdown - English / Urdu / Arabic selection (local state)
+//   5. Voice Script Settings card - navigates to HologramScriptScreen
+//   6. Uses Consumer<ThemeProvider> to rebuild when dark/light theme changes
+//   7. AppTheme methods provide all colors and decorations for theme consistency
+// Note: All state is local - resets when screen is closed, no Firebase used
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'hologram_script_screen.dart';
 import '../theme_provider.dart';
 import '../app_theme.dart';
 
-// StatefulWidget for hologram device control interface
 class HologramControlScreen extends StatefulWidget {
   const HologramControlScreen({super.key});
 
@@ -17,15 +22,13 @@ class HologramControlScreen extends StatefulWidget {
   State<HologramControlScreen> createState() => _HologramControlScreenState();
 }
 
-// State class managing device controls and Firebase integration
 class _HologramControlScreenState extends State<HologramControlScreen> {
-  // Firebase document reference for device settings
-  final DocumentReference deviceRef = FirebaseFirestore.instance
-      .collection('settings')
-      .doc('hologramDevice');
+  // Local state - all resets when screen is closed (no Firebase persistence)
+  bool _powerOn = false;   // Master power switch state
+  double _volume = 50;     // Audio volume 0-100
+  String _language = 'English'; // Selected hologram language
 
-  // Custom app bar with device control theme
-  PreferredSizeWidget customTopBar(BuildContext context, String title) {
+  PreferredSizeWidget _topBar(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: false,
       toolbarHeight: 90,
@@ -45,27 +48,19 @@ class _HologramControlScreenState extends State<HologramControlScreen> {
             child: Row(
               children: [
                 IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_ios_new,
-                    color: AppTheme.primaryTextColor(context),
-                    size: 20,
-                  ),
+                  icon: Icon(Icons.arrow_back_ios_new,
+                      color: AppTheme.primaryTextColor(context), size: 20),
                   onPressed: () => Navigator.pop(context),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryTextColor(context),
-                  ),
-                ),
+                Text('Hologram Control Panel',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTextColor(context))),
                 const Spacer(),
-                Icon(
-                  Icons.settings_input_component_rounded,
-                  color: AppTheme.accentColor(context),
-                ),
+                Icon(Icons.settings_input_component_rounded,
+                    color: AppTheme.accentColor(context)),
               ],
             ),
           ),
@@ -74,7 +69,6 @@ class _HologramControlScreenState extends State<HologramControlScreen> {
     );
   }
 
-  // Main build method with Firebase streaming for real-time device status
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
@@ -82,220 +76,185 @@ class _HologramControlScreenState extends State<HologramControlScreen> {
         return Scaffold(
           backgroundColor: AppTheme.backgroundColor(context),
           extendBodyBehindAppBar: true,
-          appBar: customTopBar(context, "Hologram Control Panel"),
+          appBar: _topBar(context),
           body: Container(
             width: double.infinity,
             height: double.infinity,
             decoration: AppTheme.backgroundFilter(context),
-            // Firebase stream for real-time device state monitoring
-            child: StreamBuilder<DocumentSnapshot>(
-              stream: deviceRef.snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.accentColor(context),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 140),
+                  // Animated icon color: accent when on, dim when off
+                  TweenAnimationBuilder(
+                    tween: ColorTween(
+                      begin: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3),
+                      end: _powerOn ? AppTheme.accentColor(context) : AppTheme.secondaryTextColor(context).withValues(alpha: 0.3),
                     ),
-                  );
-                }
+                    duration: const Duration(milliseconds: 500),
+                    builder: (context, Color? color, child) {
+                      return Icon(Icons.vibration_rounded, size: 120, color: color);
+                    },
+                  ),
+                  Text(
+                    _powerOn ? 'SYSTEM ACTIVE' : 'SYSTEM OFFLINE',
+                    style: TextStyle(
+                      color: _powerOn ? AppTheme.accentColor(context) : AppTheme.secondaryTextColor(context).withValues(alpha: 0.5),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
 
-                // Show error state if device document doesn't exist
-                if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return _buildErrorState();
-                }
+                  // Voice Script Card
+                  _card(child: ListTile(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HologramScriptScreen())),
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.accentColor(context),
+                      child: Icon(Icons.description, color: themeProvider.isDarkMode ? Colors.black : Colors.white),
+                    ),
+                    title: Text('Voice Script Settings', style: TextStyle(color: AppTheme.primaryTextColor(context), fontWeight: FontWeight.bold)),
+                    subtitle: Text('Edit Welcome & Promo messages', style: TextStyle(color: AppTheme.secondaryTextColor(context), fontSize: 12)),
+                    trailing: Icon(Icons.arrow_forward_ios, color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.5), size: 16),
+                  )),
 
-                // Extract device settings from Firebase data
-                var data = snapshot.data!.data() as Map<String, dynamic>;
-                bool powerOn = data['powerOn'] ?? false;
-                double volume = (data['volume'] ?? 50).toDouble();
-                String language = data['language'] ?? 'English';
-
-                return SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 140),
-                      // Animated device status icon
-                      TweenAnimationBuilder(
-                        tween: ColorTween(
-                          begin: AppTheme.secondaryTextColor(
-                            context,
-                          ).withValues(alpha: 0.3),
-                          end: powerOn
-                              ? AppTheme.accentColor(context)
-                              : AppTheme.secondaryTextColor(
-                                  context,
-                                ).withValues(alpha: 0.3),
-                        ),
-                        duration: const Duration(milliseconds: 500),
-                        builder: (context, Color? color, child) {
-                          return Icon(
-                            Icons.vibration_rounded,
-                            size: 120,
-                            color: color,
-                          );
-                        },
-                      ),
-                      // Device status text
-                      Text(
-                        powerOn ? "SYSTEM ACTIVE" : "SYSTEM OFFLINE",
-                        style: TextStyle(
-                          color: powerOn
-                              ? AppTheme.accentColor(context)
-                              : AppTheme.secondaryTextColor(
-                                  context,
-                                ).withValues(alpha: 0.5),
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 3,
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      // Voice script settings navigation card
-                      _buildControlCard(
-                        child: ListTile(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const HologramScriptScreen(),
-                            ),
-                          ),
-                          leading: CircleAvatar(
-                            backgroundColor: AppTheme.accentColor(context),
-                            child: Icon(
-                              Icons.description,
-                              color: themeProvider.isDarkMode
-                                  ? Colors.black
-                                  : Colors.white,
-                            ),
-                          ),
-                          title: Text(
-                            "Voice Script Settings",
-                            style: TextStyle(
-                              color: AppTheme.primaryTextColor(context),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(
-                            "Edit Welcome & Promo messages",
-                            style: TextStyle(
-                              color: AppTheme.secondaryTextColor(context),
-                              fontSize: 12,
-                            ),
-                          ),
-                          trailing: Icon(
-                            Icons.arrow_forward_ios,
-                            color: AppTheme.secondaryTextColor(
-                              context,
-                            ).withValues(alpha: 0.5),
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                      // Master power control switch
-                      _buildControlCard(
-                        child: SwitchListTile(
-                          title: Text(
-                            "Master Power",
-                            style: TextStyle(
-                              color: AppTheme.primaryTextColor(context),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(
-                            powerOn
-                                ? "Projection is Running"
-                                : "Projection Stopped",
-                            style: TextStyle(
-                              color: AppTheme.secondaryTextColor(context),
-                            ),
-                          ),
-                          value: powerOn,
-                          activeThumbColor: AppTheme.accentColor(context),
-                          onChanged: (val) =>
-                              deviceRef.update({'powerOn': val}),
-                        ),
-                      ),
-                      // Volume control slider
-                      _buildControlCard(
-                        child: Column(
+                  // Power Switch
+                  _card(child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    "Audio Volume",
-                                    style: TextStyle(
-                                      color: AppTheme.primaryTextColor(context),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    "${volume.toInt()}%",
-                                    style: TextStyle(
-                                      color: AppTheme.accentColor(context),
-                                    ),
-                                  ),
-                                ],
+                            Text('Master Power', style: TextStyle(color: AppTheme.primaryTextColor(context), fontWeight: FontWeight.bold)),
+                            Text(_powerOn ? 'Projection is Running' : 'Projection Stopped', style: TextStyle(color: AppTheme.secondaryTextColor(context))),
+                          ],
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => setState(() => _powerOn = !_powerOn),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: 64,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(34),
+                              gradient: LinearGradient(
+                                colors: _powerOn
+                                    ? [const Color(0xFF00C853), const Color(0xFF69F0AE)]
+                                    : [const Color(0xFFB71C1C), const Color(0xFFFF5252)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (_powerOn ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.7),
+                                  blurRadius: 12,
+                                  spreadRadius: 1,
+                                ),
+                                BoxShadow(
+                                  color: (_powerOn ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.3),
+                                  blurRadius: 20,
+                                  spreadRadius: 4,
+                                ),
+                              ],
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1),
                             ),
-                            // Volume slider with real-time updates
-                            Slider(
-                              value: volume,
-                              min: 0,
-                              max: 100,
-                              activeColor: AppTheme.accentColor(context),
-                              inactiveColor: AppTheme.secondaryTextColor(
-                                context,
-                              ).withValues(alpha: 0.2),
-                              onChanged: (val) =>
-                                  deviceRef.update({'volume': val.toInt()}),
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  top: 3, left: 6, right: 6,
+                                  child: Container(
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      gradient: LinearGradient(
+                                        colors: [Colors.white.withValues(alpha: 0.5), Colors.transparent],
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                AnimatedAlign(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                  alignment: _powerOn ? Alignment.centerRight : Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                    child: Container(
+                                      width: 26,
+                                      height: 26,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: (_powerOn ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.6),
+                                            blurRadius: 8,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Icon(
+                                        _powerOn ? Icons.power : Icons.power_off,
+                                        size: 14,
+                                        color: _powerOn ? const Color(0xFF00C853) : const Color(0xFFB71C1C),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+
+                  // Volume Slider
+                  _card(child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Audio Volume', style: TextStyle(color: AppTheme.primaryTextColor(context), fontWeight: FontWeight.bold)),
+                            Text('${_volume.toInt()}%', style: TextStyle(color: AppTheme.accentColor(context))),
                           ],
                         ),
                       ),
-                      // Language selection dropdown
-                      _buildControlCard(
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.language,
-                            color: AppTheme.accentColor(context),
-                          ),
-                          title: Text(
-                            "Hologram Language",
-                            style: TextStyle(
-                              color: AppTheme.primaryTextColor(context),
-                            ),
-                          ),
-                          trailing: DropdownButton<String>(
-                            value: language,
-                            dropdownColor: AppTheme.cardColor(context),
-                            underline: const SizedBox(),
-                            items: ['English', 'Urdu', 'Arabic'].map((
-                              String val,
-                            ) {
-                              return DropdownMenuItem<String>(
-                                value: val,
-                                child: Text(
-                                  val,
-                                  style: TextStyle(
-                                    color: AppTheme.primaryTextColor(context),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) =>
-                                deviceRef.update({'language': val}),
-                          ),
-                        ),
+                      Slider(
+                        value: _volume,
+                        min: 0,
+                        max: 100,
+                        activeColor: AppTheme.accentColor(context),
+                        inactiveColor: AppTheme.secondaryTextColor(context).withValues(alpha: 0.2),
+                        onChanged: (val) => setState(() => _volume = val),
                       ),
-                      const SizedBox(height: 40),
                     ],
-                  ),
-                );
-              },
+                  )),
+
+                  // Language Dropdown
+                  _card(child: ListTile(
+                    leading: Icon(Icons.language, color: AppTheme.accentColor(context)),
+                    title: Text('Hologram Language', style: TextStyle(color: AppTheme.primaryTextColor(context))),
+                    trailing: DropdownButton<String>(
+                      value: _language,
+                      dropdownColor: AppTheme.cardColor(context),
+                      underline: const SizedBox(),
+                      items: ['English', 'Urdu', 'Arabic'].map((val) => DropdownMenuItem(
+                        value: val,
+                        child: Text(val, style: TextStyle(color: AppTheme.primaryTextColor(context))),
+                      )).toList(),
+                      onChanged: (val) => setState(() => _language = val!),
+                    ),
+                  )),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         );
@@ -303,54 +262,17 @@ class _HologramControlScreenState extends State<HologramControlScreen> {
     );
   }
 
-  // Reusable control card wrapper with consistent styling
-  Widget _buildControlCard({required Widget child}) {
+  // Reusable card container used by all control tiles on this screen
+  Widget _card({required Widget child}) {
     return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child2) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.cardColor(context),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppTheme.secondaryTextColor(
-                context,
-              ).withValues(alpha: 0.1),
-            ),
-          ),
-          child: child,
-        );
-      },
-    );
-  }
-
-  // Error state widget for missing device document
-  Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.warning_amber_rounded,
-            color: Colors.amber,
-            size: 60,
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            "Device Document Not Found!",
-            style: TextStyle(color: Colors.white),
-          ),
-          const SizedBox(height: 20),
-          // Initialize device button for first-time setup
-          ElevatedButton(
-            onPressed: () => deviceRef.set({
-              'powerOn': false,
-              'volume': 50,
-              'language': 'English',
-            }),
-            child: const Text("Initialize Device"),
-          ),
-        ],
+      builder: (context, _, __) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppTheme.cardColor(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.1)),
+        ),
+        child: child,
       ),
     );
   }

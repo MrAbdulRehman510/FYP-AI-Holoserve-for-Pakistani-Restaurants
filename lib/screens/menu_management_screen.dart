@@ -1,15 +1,21 @@
-// Menu Management Screen - Firebase-integrated menu and category management system
-// Provides functionality to add categories, create/edit menu items, and manage restaurant menu
-// Includes real-time Firebase synchronization and dynamic category-based organization
+// MenuManagementScreen - Menu categories and items management screen
+// Responsibilities:
+//   1. Displays all menu categories with their items and prices
+//   2. "Add New Category" button creates a new empty category
+//   3. "Add Item" button inside each category adds a new item
+//   4. Tapping an item opens an edit dialog to update name and price
+//   5. Long pressing an item deletes it from the category
+//   6. The delete_sweep icon on a category header removes the entire category
+//   7. Uses Consumer<ThemeProvider> to rebuild when dark/light theme changes
+//   8. AppTheme methods provide all colors and decorations for theme consistency
+// Note: All data is local mock data - resets when the app is closed
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Firebase Firestore for data management
 import 'package:provider/provider.dart';
-import '../theme_provider.dart'; // Theme management provider
-import '../app_theme.dart'; // App-wide theme constants and styles
-import '../standard_toolbar.dart'; // Standardized toolbar component
+import '../theme_provider.dart';
+import '../app_theme.dart';
+import '../standard_toolbar.dart';
 
-// StatefulWidget for Menu Management with Firebase integration
 class MenuManagementScreen extends StatefulWidget {
   const MenuManagementScreen({super.key});
 
@@ -17,438 +23,298 @@ class MenuManagementScreen extends StatefulWidget {
   State<MenuManagementScreen> createState() => _MenuManagementScreenState();
 }
 
-// State class for Menu Management with Firebase operations
 class _MenuManagementScreenState extends State<MenuManagementScreen> {
-  // Method to add new category to Firebase with validation
-  // Shows dialog for category name input and saves to Firestore
-  Future<void> _addNewCategory() async {
-    TextEditingController catCtrl =
-        TextEditingController(); // Category name controller
+  // Menu data structure: category name -> list of items (each item has name and price)
+  // This is local mock data - resets when the app is closed
+  final Map<String, List<Map<String, dynamic>>> _menu = {
+    'Burgers': [
+      {'name': 'Zinger Burger', 'price': 450},
+      {'name': 'Crispy Burger', 'price': 380},
+      {'name': 'Double Patty', 'price': 550},
+    ],
+    'Pizza': [
+      {'name': 'Margherita', 'price': 700},
+      {'name': 'BBQ Chicken', 'price': 850},
+    ],
+    'Drinks': [
+      {'name': 'Coke 500ml', 'price': 120},
+      {'name': 'Sprite 500ml', 'price': 120},
+      {'name': 'Mineral Water', 'price': 80},
+    ],
+    'Sides': [
+      {'name': 'French Fries', 'price': 200},
+      {'name': 'Coleslaw', 'price': 150},
+    ],
+  };
+
+  // Opens a dialog to add a new category - adds empty item list under that category name
+  void _addCategory() {
+    final ctrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF0A0F1C), // Dark dialog background
-        title: const Text(
-          "Add New Category", // Dialog title
-          style: TextStyle(color: Color(0xFF00E5FF)), // Accent color title
-        ),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Add New Category', style: TextStyle(color: AppTheme.accentColor(context), fontWeight: FontWeight.bold)),
         content: TextField(
-          controller: catCtrl, // Text controller for category name
-          style: const TextStyle(color: Colors.white), // White text color
-          decoration: const InputDecoration(
-            hintText: "Category Name (e.g. Pizza)", // Placeholder text
-            hintStyle: TextStyle(color: Colors.white24), // Light hint color
+          controller: ctrl,
+          autofocus: true,
+          style: TextStyle(color: AppTheme.primaryTextColor(context)),
+          decoration: InputDecoration(
+            hintText: 'Category Name',
+            hintStyle: TextStyle(color: AppTheme.secondaryTextColor(context)),
+            prefixIcon: Icon(Icons.category, color: AppTheme.accentColor(context)),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3))),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.accentColor(context))),
           ),
         ),
         actions: [
-          // Cancel button
-          TextButton(
-            onPressed: () => Navigator.pop(context), // Close dialog
-            child: const Text("Cancel"),
-          ),
-          // Add category button
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: AppTheme.secondaryTextColor(context)))),
           ElevatedButton(
-            onPressed: () async {
-              if (catCtrl.text.isNotEmpty) {
-                // Validate input
-                // Save category to Firebase
-                await FirebaseFirestore.instance
-                    .collection('categories') // Categories collection
-                    .doc(
-                      catCtrl.text.trim(),
-                    ) // Use category name as document ID
-                    .set({
-                      'name': catCtrl.text.trim(), // Category name
-                      'timestamp':
-                          FieldValue.serverTimestamp(), // Creation timestamp
-                    });
-                // Close dialog if widget is still mounted
-                if (context.mounted) Navigator.pop(context);
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor(context)),
+            onPressed: () {
+              if (ctrl.text.trim().isNotEmpty) {
+                setState(() => _menu[ctrl.text.trim()] = []);
+                Navigator.pop(ctx);
               }
             },
-            child: const Text("Add"), // Button text
+            child: Text('Add', style: TextStyle(color: Provider.of<ThemeProvider>(context, listen: false).isDarkMode ? Colors.black : Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // Method to create new menu item or update existing item in Firebase
-  // Handles both creation and editing operations based on docId parameter
-  Future<void> updateOrCreateItem(
-    String? docId, // Document ID for editing (null for new item)
-    String category, // Category name for the item
-    String name, // Item name
-    int price, // Item price
-  ) async {
-    if (docId != null) {
-      // Update existing item
-      await FirebaseFirestore.instance.collection('menu').doc(docId).update({
-        'name': name, // Updated item name
-        'price': price, // Updated item price
-      });
-    } else {
-      // Create new item
-      await FirebaseFirestore.instance.collection('menu').add({
-        'name': name, // Item name
-        'price': price, // Item price
-        'category': category, // Category assignment
-        'available': true, // Default availability status
-        'timestamp': FieldValue.serverTimestamp(), // Creation timestamp
-      });
-    }
-  }
-
-  // Dialog for editing or adding menu items with form validation
-  // Shows themed dialog with name and price input fields
-  void showEditDialog({
-    String? docId, // Document ID for editing (null for new item)
-    required String category, // Category for the item
-    String oldName = "", // Existing name for editing
-    int oldPrice = 0, // Existing price for editing
-  }) {
-    // Text controllers with existing values for editing
-    TextEditingController nameCtrl = TextEditingController(text: oldName);
-    TextEditingController priceCtrl = TextEditingController(
-      text: oldPrice == 0 ? "" : oldPrice.toString(), // Empty for new items
-    );
-
+  // Opens add/edit dialog for a menu item
+  // If index is null -> adding new item to category
+  // If index is provided -> editing existing item at that index
+  void _showItemDialog({required String category, int? index}) {
+    final nameCtrl = TextEditingController(text: index != null ? _menu[category]![index]['name'] : '');
+    final priceCtrl = TextEditingController(text: index != null ? _menu[category]![index]['price'].toString() : '');
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF0A0F1C), // Dark dialog background
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(
-            color: Color(0xFF00E5FF),
-            width: 1,
-          ), // Accent border
-          borderRadius: BorderRadius.circular(15), // Rounded corners
-        ),
-        title: Text(
-          docId == null
-              ? "Add Item to $category"
-              : "Edit Item", // Dynamic title
-          style: const TextStyle(
-            color: Color(0xFF00E5FF),
-          ), // Accent color title
-        ),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: AppTheme.accentColor(context))),
+        title: Text(index == null ? 'Add Item to $category' : 'Edit Item', style: TextStyle(color: AppTheme.accentColor(context), fontWeight: FontWeight.bold)),
         content: Column(
-          mainAxisSize: MainAxisSize.min, // Minimum height for content
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Item name input field
             TextField(
-              controller: nameCtrl, // Name controller
-              style: const TextStyle(color: Colors.white), // White text
-              decoration: const InputDecoration(
-                labelText: "Name", // Field label
-                labelStyle: TextStyle(
-                  color: Colors.white60,
-                ), // Light label color
+              controller: nameCtrl,
+              style: TextStyle(color: AppTheme.primaryTextColor(context)),
+              decoration: InputDecoration(
+                labelText: 'Item Name',
+                labelStyle: TextStyle(color: AppTheme.secondaryTextColor(context)),
+                prefixIcon: Icon(Icons.fastfood, color: AppTheme.accentColor(context)),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3))),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.accentColor(context))),
               ),
             ),
-            // Item price input field
+            const SizedBox(height: 12),
             TextField(
-              controller: priceCtrl, // Price controller
-              style: const TextStyle(color: Colors.white), // White text
-              decoration: const InputDecoration(
-                labelText: "Price", // Field label
-                labelStyle: TextStyle(
-                  color: Colors.white60,
-                ), // Light label color
+              controller: priceCtrl,
+              keyboardType: TextInputType.number,
+              style: TextStyle(color: AppTheme.primaryTextColor(context)),
+              decoration: InputDecoration(
+                labelText: 'Price (Rs)',
+                labelStyle: TextStyle(color: AppTheme.secondaryTextColor(context)),
+                prefixIcon: Icon(Icons.attach_money, color: AppTheme.accentColor(context)),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3))),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.accentColor(context))),
               ),
-              keyboardType: TextInputType.number, // Numeric keyboard
             ),
           ],
         ),
         actions: [
-          // Cancel button
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext), // Close dialog
-            child: const Text("Back", style: TextStyle(color: Colors.white54)),
-          ),
-          // Save button
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.redAccent))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00E5FF), // Accent background
-            ),
-            onPressed: () async {
-              // Validate inputs before saving
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor(context)),
+            onPressed: () {
               if (nameCtrl.text.isNotEmpty && priceCtrl.text.isNotEmpty) {
-                await updateOrCreateItem(
-                  docId, // Document ID (null for new)
-                  category, // Category name
-                  nameCtrl.text, // Item name
-                  int.parse(priceCtrl.text), // Item price
-                );
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext); // Close dialog
-                }
+                setState(() {
+                  final item = {'name': nameCtrl.text.trim(), 'price': int.tryParse(priceCtrl.text) ?? 0};
+                  if (index == null) {
+                    _menu[category]!.add(item);      // New item - append to list
+                  } else {
+                    _menu[category]![index] = item;  // Edit - replace at index
+                  }
+                });
+                Navigator.pop(ctx);
               }
             },
-            child: const Text(
-              "Save",
-              style: TextStyle(color: Colors.black),
-            ), // Button text
+            child: Text('Save', style: TextStyle(color: Provider.of<ThemeProvider>(context, listen: false).isDarkMode ? Colors.black : Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // Reusable widget for building menu item tiles with edit/delete functionality
-  // Creates styled list tiles for each menu item with action buttons
-  Widget buildItemTile(
-    String name, // Item name
-    int price, // Item price
-    String category, { // Item category
-    String? docId, // Document ID for Firebase operations
-  }) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 2), // Vertical spacing
-          decoration: BoxDecoration(
-            color: AppTheme.secondaryTextColor(
-              context,
-            ).withValues(alpha: 0.05), // Light background
+  void _confirmDeleteItem(String category, int index) {
+    final name = _menu[category]![index]['name'];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Item', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Text('Delete "$name"?', style: TextStyle(color: AppTheme.primaryTextColor(context))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.secondaryTextColor(context))),
           ),
-          child: ListTile(
-            // Food icon
-            leading: Icon(
-              Icons.fastfood_rounded,
-              color: AppTheme.accentColor(context),
-              size: 18,
-            ),
-            // Item name as title
-            title: Text(
-              name,
-              style: TextStyle(
-                color: AppTheme.primaryTextColor(context),
-                fontSize: 14,
-              ),
-            ),
-            // Item price as subtitle
-            subtitle: Text(
-              "Rs $price", // Price with currency
-              style: TextStyle(
-                color: AppTheme.secondaryTextColor(context),
-                fontSize: 12,
-              ),
-            ),
-            // Action buttons (edit and delete)
-            trailing: Wrap(
-              children: [
-                // Edit button
-                IconButton(
-                  icon: Icon(
-                    Icons.edit,
-                    color: AppTheme.accentColor(context),
-                    size: 18,
-                  ),
-                  onPressed: () => showEditDialog(
-                    docId: docId, // Pass document ID for editing
-                    category: category, // Pass category
-                    oldName: name, // Pass existing name
-                    oldPrice: price, // Pass existing price
-                  ),
-                ),
-                // Delete button (only for existing items)
-                if (docId != null)
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete,
-                      color: Colors.redAccent, // Red color for delete
-                      size: 18,
-                    ),
-                    onPressed: () => FirebaseFirestore.instance
-                        .collection('menu')
-                        .doc(docId)
-                        .delete(), // Delete item from Firebase
-                  ),
-              ],
-            ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () {
+              setState(() => _menu[category]!.removeAt(index));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('"$name" deleted'), backgroundColor: Colors.red, duration: const Duration(seconds: 1)),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  // Main build method - Creates the complete menu management interface
+  void _confirmDeleteCategory(String category) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Category', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Text('Delete "$category" and all its items?', style: TextStyle(color: AppTheme.primaryTextColor(context))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.secondaryTextColor(context))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () {
+              setState(() => _menu.remove(category));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('"$category" deleted'), backgroundColor: Colors.red, duration: const Duration(seconds: 1)),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Consumer for ThemeProvider to access theme settings
     return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        return Scaffold(
-          backgroundColor: AppTheme.backgroundColor(
-            context,
-          ), // Theme-based background
-          extendBodyBehindAppBar: true, // Allow body to extend behind app bar
-          appBar: StandardToolbar.build(
-            context,
-            "Menu Management", // Screen title
-            actionIcon: Icons.restaurant_menu, // Menu icon
-          ),
-          body: Container(
-            decoration: AppTheme.backgroundFilter(
-              context,
-            ), // Background decoration
-            child: Column(
-              children: [
-                const SizedBox(height: 110), // Space for app bar
-                // Add New Category Button - Full width button at top
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: InkWell(
-                    onTap: _addNewCategory, // Call add category method
-                    child: Container(
-                      width: double.infinity, // Full width
-                      height: 48, // Fixed height
-                      decoration: BoxDecoration(
-                        color: AppTheme.accentColor(
-                          context,
-                        ), // Theme accent color
-                        borderRadius: BorderRadius.circular(
-                          25,
-                        ), // Rounded corners
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.add_circle_outline,
-                            color: themeProvider.isDarkMode
-                                ? Colors.black
-                                : Colors.white,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            "Add New Category", // Button text
-                            style: TextStyle(
-                              color: themeProvider.isDarkMode
-                                  ? Colors.black
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+      builder: (context, themeProvider, child) => Scaffold(
+        backgroundColor: AppTheme.backgroundColor(context),
+        extendBodyBehindAppBar: true,
+        appBar: StandardToolbar.build(context, 'Menu Management', actionIcon: Icons.restaurant_menu),
+        body: Container(
+          decoration: AppTheme.backgroundFilter(context),
+          child: Column(
+            children: [
+              const SizedBox(height: 110),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GestureDetector(
+                  onTap: _addCategory,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(color: AppTheme.accentColor(context), borderRadius: BorderRadius.circular(25)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_circle_outline, color: themeProvider.isDarkMode ? Colors.black : Colors.white),
+                        const SizedBox(width: 10),
+                        Text('Add New Category', style: TextStyle(color: themeProvider.isDarkMode ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                // Menu Categories and Items List - Firebase StreamBuilder
-                Expanded(
-                  child: StreamBuilder(
-                    stream: FirebaseFirestore.instance
-                        .collection('categories') // Categories collection
-                        .snapshots(),
-                    builder: (context, AsyncSnapshot<QuerySnapshot> catSnapshot) {
-                      return StreamBuilder(
-                        stream: FirebaseFirestore.instance
-                            .collection('menu') // Menu items collection
-                            .snapshots(),
-                        builder: (context, AsyncSnapshot<QuerySnapshot> menuSnapshot) {
-                          // Show loading indicator while fetching data
-                          if (!catSnapshot.hasData) {
-                            return Center(
-                              child: CircularProgressIndicator(
-                                color: AppTheme.accentColor(context),
-                              ),
-                            );
-                          }
-
-                          // Create display map for organizing items by category
-                          Map<String, List<Widget>> displayMap = {};
-
-                          // Initialize categories
-                          for (var doc in catSnapshot.data!.docs) {
-                            displayMap[doc.id] =
-                                []; // Empty list for each category
-                          }
-
-                          // Populate categories with menu items
-                          if (menuSnapshot.hasData) {
-                            for (var doc in menuSnapshot.data!.docs) {
-                              var data = doc.data() as Map<String, dynamic>;
-                              String cat =
-                                  data['category'] ??
-                                  'Others'; // Default category
-                              if (displayMap.containsKey(cat)) {
-                                displayMap[cat]!.add(
-                                  buildItemTile(
-                                    data['name'], // Item name
-                                    data['price'], // Item price
-                                    cat, // Category
-                                    docId: doc.id, // Document ID
-                                  ),
-                                );
-                              }
-                            }
-                          }
-
-                          // Build expandable category list
-                          return ListView(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            children: displayMap.keys.map((category) {
-                              return Container(
-                                margin: const EdgeInsets.only(
-                                  bottom: 12,
-                                ), // Space between categories
-                                decoration: BoxDecoration(
-                                  color: AppTheme.cardColor(
-                                    context,
-                                  ), // Theme-based card color
-                                  borderRadius: BorderRadius.circular(
-                                    15,
-                                  ), // Rounded corners
-                                  border: Border.all(
-                                    color: AppTheme.secondaryTextColor(
-                                      context,
-                                    ).withValues(alpha: 0.1), // Subtle border
-                                  ),
+              ),
+              const SizedBox(height: 8),
+              Text('Tap item to edit | Long press to delete', style: TextStyle(color: AppTheme.secondaryTextColor(context), fontSize: 12)),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  children: _menu.entries.map((entry) {
+                    final category = entry.key;
+                    final items = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardColor(context),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: AppTheme.accentColor(context).withValues(alpha: 0.2)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                            child: Row(
+                              children: [
+                                Icon(Icons.folder_open, color: AppTheme.accentColor(context), size: 20),
+                                const SizedBox(width: 10),
+                                Text(category.toUpperCase(), style: TextStyle(color: AppTheme.primaryTextColor(context), fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1)),
+                                const Spacer(),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_sweep, color: Colors.redAccent, size: 20),
+                                  onPressed: () => _confirmDeleteCategory(category),
                                 ),
-                                child: ExpansionTile(
-                                  title: Text(
-                                    category, // Category name
-                                    style: TextStyle(
-                                      color: AppTheme.primaryTextColor(context),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          ...items.asMap().entries.map((e) {
+                            final i = e.key;
+                            final item = e.value;
+                            return GestureDetector(
+                              onTap: () => _showItemDialog(category: category, index: i),
+                              onLongPress: () => _confirmDeleteItem(category, i),
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.backgroundColor(context).withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.accentColor(context).withValues(alpha: 0.15)),
+                                ),
+                                child: Row(
                                   children: [
-                                    ...displayMap[category]!, // Category items
-                                    // Add Item Button for each category
-                                    TextButton.icon(
-                                      onPressed: () => showEditDialog(
-                                        category: category,
-                                      ), // Add new item to category
-                                      icon: Icon(
-                                        Icons.add,
-                                        color: AppTheme.accentColor(context),
-                                      ),
-                                      label: Text(
-                                        "Add Item", // Button text
-                                        style: TextStyle(
-                                          color: AppTheme.accentColor(context),
-                                        ),
-                                      ),
-                                    ),
+                                    Icon(Icons.fastfood_rounded, color: AppTheme.accentColor(context), size: 18),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Text(item['name'], style: TextStyle(color: AppTheme.primaryTextColor(context), fontSize: 14, fontWeight: FontWeight.w500))),
+                                    Text('Rs ${item['price']}', style: TextStyle(color: AppTheme.accentColor(context), fontWeight: FontWeight.bold, fontSize: 14)),
                                   ],
                                 ),
-                              );
-                            }).toList(),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                              ),
+                            );
+                          }),
+                          TextButton.icon(
+                            onPressed: () => _showItemDialog(category: category),
+                            icon: Icon(Icons.add, color: AppTheme.accentColor(context)),
+                            label: Text('Add Item', style: TextStyle(color: AppTheme.accentColor(context))),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

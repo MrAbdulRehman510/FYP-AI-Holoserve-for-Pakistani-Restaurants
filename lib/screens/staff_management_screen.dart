@@ -1,14 +1,22 @@
-// Staff Management Screen - Admin interface for managing staff members
-// Provides functionality to add new staff, view staff list, and manage staff profiles
-// Includes dynamic staff list with add/remove capabilities and profile navigation
+// ============================================================
+// StaffManagementScreen - Staff members ko manage karne ka screen
+// Kaam:
+//   1. Mock staff list dikhata hai (5 default members)
+//   2. Naya staff add kar sakte ho (name, email, password, role)
+//   3. Status tap karne par Active/Inactive toggle hota hai
+//   4. Long press karne par staff delete ho jaata hai
+//   5. Consumer<ThemeProvider> se dark/light theme ke saath rebuild hota hai
+//   6. AppTheme methods se saare colors aur decorations milte hain
+// Note: Ye sirf local mock data hai - Firebase nahi use hota
+//       App band hone par data reset ho jaata hai
+// ============================================================
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../theme_provider.dart'; // Theme management provider
-import '../app_theme.dart'; // App-wide theme constants and styles
-import 'staff_profile_screen.dart'; // Staff profile viewing screen
+import '../theme_provider.dart';
+import '../app_theme.dart';
+import '../standard_toolbar.dart';
 
-// StatefulWidget for Staff Management with dynamic staff list
 class StaffManagementScreen extends StatefulWidget {
   const StaffManagementScreen({super.key});
 
@@ -16,95 +24,111 @@ class StaffManagementScreen extends StatefulWidget {
   State<StaffManagementScreen> createState() => _StaffManagementScreenState();
 }
 
-// State class for Staff Management with staff list and operations
 class _StaffManagementScreenState extends State<StaffManagementScreen> {
-  // Mock data for staff members with name, role, and status
-  // In a real app, this would come from a database or API
-  List<Map<String, String>> staffList = [
-    {"name": "Ali Ahmed", "role": "Manager", "status": "Active"},
-    {"name": "Sara Khan", "role": "Chef", "status": "On Leave"},
-    {"name": "Zain Malik", "role": "Waiter", "status": "Active"},
+  // Mock staff list - each member has name, email, job role, and active status
+  final List<Map<String, dynamic>> _staff = [
+    {'name': 'Ahmed Raza', 'email': 'ahmed@gmail.com', 'jobRole': 'Manager', 'status': 'Active'},
+    {'name': 'Sara Khan', 'email': 'sara@gmail.com', 'jobRole': 'Chef', 'status': 'Active'},
+    {'name': 'Bilal Hassan', 'email': 'bilal@gmail.com', 'jobRole': 'Waiter', 'status': 'Active'},
+    {'name': 'Nadia Ali', 'email': 'nadia@gmail.com', 'jobRole': 'Waiter', 'status': 'Inactive'},
+    {'name': 'Usman Tariq', 'email': 'usman@gmail.com', 'jobRole': 'Cleaner', 'status': 'Active'},
   ];
 
-  // Method to add new staff member with dialog form
-  // Shows dialog with name input and role selection dropdown
-  void addStaffMember() {
-    TextEditingController nameCtrl = TextEditingController(); // Name input controller
-    String selectedRole = 'Waiter'; // Default role selection
+  // Opens dialog to add a new staff member with name, email, password, and role
+  // Uses StatefulBuilder so the password toggle and role dropdown work inside the dialog
+  void _showAddDialog() {
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    String role = 'Waiter';
+    bool obscure = true;
 
     showDialog(
-      context: context, // Current context for dialog
-      builder: (context) => StatefulBuilder(
-        // StatefulBuilder for dynamic dropdown updates within dialog
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppTheme.cardColor(context), // Theme-based dialog background
-          title: Text(
-            "Add Staff Member",
-            style: TextStyle(color: AppTheme.accentColor(context)), // Accent color title
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          backgroundColor: AppTheme.cardColor(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppTheme.accentColor(context)),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min, // Minimum height for content
-            children: [
-              // Name input field
-              TextField(
-                controller: nameCtrl, // Text controller for name
-                style: TextStyle(color: AppTheme.primaryTextColor(context)),
-                decoration: InputDecoration(
-                  hintText: "Full Name", // Placeholder text
-                  hintStyle: TextStyle(color: AppTheme.secondaryTextColor(context)),
+          title: Text('Add Staff Member',
+              style: TextStyle(color: AppTheme.accentColor(context), fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _field(nameCtrl, 'Full Name', Icons.person, context),
+                const SizedBox(height: 12),
+                _field(emailCtrl, 'Email', Icons.email, context),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passCtrl,
+                  obscureText: obscure,
+                  style: TextStyle(color: AppTheme.primaryTextColor(context)),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    labelStyle: TextStyle(color: AppTheme.secondaryTextColor(context)),
+                    prefixIcon: Icon(Icons.lock, color: AppTheme.accentColor(context)),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscure ? Icons.visibility_off : Icons.visibility,
+                          color: AppTheme.secondaryTextColor(context)),
+                      onPressed: () => setDialog(() => obscure = !obscure),
+                    ),
+                    enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(
+                            color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3))),
+                    focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: AppTheme.accentColor(context))),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              // Role selection dropdown
-              DropdownButton<String>(
-                value: selectedRole, // Current selected role
-                dropdownColor: AppTheme.cardColor(context), // Theme-based dropdown color
-                isExpanded: true, // Full width dropdown
-                style: TextStyle(color: AppTheme.primaryTextColor(context)),
-                items: ['Manager', 'Chef', 'Waiter', 'Cleaner'].map((
-                  String value,
-                ) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value), // Role option text
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  setDialogState(() {
-                    selectedRole = newValue!; // Update selected role
-                  });
-                },
-              ),
-            ],
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: role,
+                  dropdownColor: AppTheme.cardColor(context),
+                  style: TextStyle(color: AppTheme.primaryTextColor(context)),
+                  decoration: InputDecoration(
+                    labelText: 'Role',
+                    labelStyle: TextStyle(color: AppTheme.secondaryTextColor(context)),
+                    prefixIcon: Icon(Icons.work, color: AppTheme.accentColor(context)),
+                    enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(
+                            color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3))),
+                    focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: AppTheme.accentColor(context))),
+                  ),
+                  items: ['Manager', 'Chef', 'Waiter', 'Cleaner']
+                      .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                      .toList(),
+                  onChanged: (v) => setDialog(() => role = v!),
+                ),
+              ],
+            ),
           ),
           actions: [
-            // Cancel button
             TextButton(
-              onPressed: () => Navigator.pop(context), // Close dialog
-              child: Text(
-                "Cancel",
-                style: TextStyle(color: AppTheme.secondaryTextColor(context)),
-              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.redAccent)),
             ),
-            // Add button
-            TextButton(
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor(context)),
               onPressed: () {
-                if (nameCtrl.text.isNotEmpty) { // Validate name input
-                  setState(() {
-                    // Add new staff member to list
-                    staffList.add({
-                      "name": nameCtrl.text,
-                      "role": selectedRole,
-                      "status": "Active", // Default status for new staff
-                    });
+                if (nameCtrl.text.trim().isEmpty) return;
+                setState(() {
+                  _staff.add({
+                    'name': nameCtrl.text.trim(),
+                    'email': emailCtrl.text.trim(),
+                    'jobRole': role,
+                    'status': 'Active',
                   });
-                  Navigator.pop(context); // Close dialog after adding
-                }
+                });
+                Navigator.pop(ctx);
               },
-              child: Text(
-                "Add",
-                style: TextStyle(color: AppTheme.accentColor(context)),
-              ),
+              child: Text('Add',
+                  style: TextStyle(
+                      color: Provider.of<ThemeProvider>(context, listen: false).isDarkMode
+                          ? Colors.black
+                          : Colors.white)),
             ),
           ],
         ),
@@ -112,152 +136,162 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     );
   }
 
-  // Custom top bar with gradient background and person add icon
-  PreferredSizeWidget customTopBar(BuildContext context, String title) {
-    return AppBar(
-      automaticallyImplyLeading: false, // Remove default back button
-      toolbarHeight: 90, // Custom height for better appearance
-      backgroundColor: Colors.transparent, // Transparent to show gradient
-      elevation: 0, // Remove shadow
-      flexibleSpace: Container(
-        // Gradient background container
-        decoration: BoxDecoration(
-          gradient: AppTheme.appBarGradient(context), // Theme-based gradient
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(24), // Rounded bottom corners
-            bottomRight: Radius.circular(24),
+  // Shows confirmation dialog before removing a staff member from the list
+  void _confirmDelete(int index) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.cardColor(ctx),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Remove Staff',
+            style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Text('Remove "${_staff[index]['name']}" from staff?',
+            style: TextStyle(color: AppTheme.primaryTextColor(ctx))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.secondaryTextColor(ctx))),
           ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                // Custom back button
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: AppTheme.primaryTextColor(context)),
-                  onPressed: () => Navigator.pop(context), // Navigate back
-                ),
-                const SizedBox(width: 12),
-                // Screen title
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryTextColor(context),
-                  ),
-                ),
-                const Spacer(), // Push icon to right
-                // Person add icon
-                Icon(Icons.person_add_alt_1, color: AppTheme.accentColor(context)),
-              ],
-            ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () {
+              setState(() => _staff.removeAt(index));
+              Navigator.pop(ctx);
+            },
+            child: const Text('Remove', style: TextStyle(color: Colors.white)),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  // Main build method - Creates the complete staff management interface
+  Widget _field(TextEditingController ctrl, String label, IconData icon, BuildContext context) {
+    return TextField(
+      controller: ctrl,
+      style: TextStyle(color: AppTheme.primaryTextColor(context)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: AppTheme.secondaryTextColor(context)),
+        prefixIcon: Icon(icon, color: AppTheme.accentColor(context)),
+        enabledBorder: UnderlineInputBorder(
+            borderSide:
+                BorderSide(color: AppTheme.secondaryTextColor(context).withValues(alpha: 0.3))),
+        focusedBorder:
+            UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.accentColor(context))),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Consumer for ThemeProvider to access theme settings
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) => Scaffold(
-        extendBodyBehindAppBar: true, // Allow body to extend behind app bar
-        appBar: customTopBar(context, "Staff Management"), // Custom app bar
+        backgroundColor: AppTheme.backgroundColor(context),
+        extendBodyBehindAppBar: true,
+        appBar: StandardToolbar.build(context, 'Staff Management',
+            actionIcon: Icons.person_add_alt_1),
         body: Container(
-          decoration: AppTheme.backgroundFilter(context), // Background decoration
+          decoration: AppTheme.backgroundFilter(context),
           child: Column(
             children: [
-              const SizedBox(height: 110), // Space for app bar
-              // Add New Staff Button - Full width button at top
+              const SizedBox(height: 110),
               Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentColor(context), // Theme accent color
-                    foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                    minimumSize: const Size(double.infinity, 50), // Full width, fixed height
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12), // Rounded corners
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GestureDetector(
+                  onTap: _showAddDialog,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentColor(context),
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                  ),
-                  onPressed: addStaffMember, // Call add staff method
-                  icon: const Icon(Icons.add), // Add icon
-                  label: const Text(
-                    "Hire New Staff", // Button text
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_circle_outline,
+                            color: themeProvider.isDarkMode ? Colors.black : Colors.white),
+                        const SizedBox(width: 10),
+                        Text('Hire New Staff',
+                            style: TextStyle(
+                                color: themeProvider.isDarkMode ? Colors.black : Colors.white,
+                                fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
                 ),
               ),
-              // Staff List - Scrollable list of staff members
+              const SizedBox(height: 8),
+              Text('Tap status to toggle  •  Long press to delete',
+                  style: TextStyle(color: AppTheme.secondaryTextColor(context), fontSize: 12)),
+              const SizedBox(height: 10),
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16), // Horizontal padding
-                  itemCount: staffList.length, // Number of staff members
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _staff.length,
                   itemBuilder: (context, index) {
-                    final staff = staffList[index]; // Current staff member data
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 15), // Space between cards
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardColor(context), // Theme-based card color
-                        borderRadius: BorderRadius.circular(15), // Rounded corners
-                        border: Border.all(
-                          color: AppTheme.accentColor(context).withValues(alpha: 0.2), // Subtle border
+                    final s = _staff[index];
+                    final isActive = s['status'] == 'Active';
+                    return GestureDetector(
+                      onLongPress: () => _confirmDelete(index),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.cardColor(context),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                              color: AppTheme.accentColor(context).withValues(alpha: 0.2)),
                         ),
-                      ),
-                      child: ListTile(
-                        // Staff avatar with person icon
-                        leading: CircleAvatar(
-                          backgroundColor: AppTheme.accentColor(context).withValues(alpha: 0.1), // Light background
-                          child: Icon(
-                            Icons.person,
-                            color: AppTheme.accentColor(context), // Accent color icon
-                          ),
-                        ),
-                        // Staff name as title
-                        title: Text(
-                          staff['name']!, // Staff member name
-                          style: TextStyle(
-                            color: AppTheme.primaryTextColor(context),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        // Staff role and status as subtitle
-                        subtitle: Text(
-                          "${staff['role']} • ${staff['status']}", // Role and status with bullet separator
-                          style: TextStyle(color: AppTheme.secondaryTextColor(context)),
-                        ),
-                        // Action buttons (profile view and delete)
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min, // Minimum width for trailing
+                        child: Row(
                           children: [
-                            // Profile view button
-                            IconButton(
-                              icon: Icon(
-                                Icons.person,
-                                color: AppTheme.accentColor(context),
-                              ),
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const StaffProfileScreen(), // Navigate to staff profile
-                                ),
+                            CircleAvatar(
+                              backgroundColor:
+                                  AppTheme.accentColor(context).withValues(alpha: 0.1),
+                              child: Icon(Icons.person, color: AppTheme.accentColor(context)),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(s['name'],
+                                      style: TextStyle(
+                                          color: AppTheme.primaryTextColor(context),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15)),
+                                  Text(s['jobRole'],
+                                      style: TextStyle(
+                                          color: AppTheme.secondaryTextColor(context),
+                                          fontSize: 13)),
+                                  Text(s['email'],
+                                      style: TextStyle(
+                                          color: AppTheme.secondaryTextColor(context)
+                                              .withValues(alpha: 0.6),
+                                          fontSize: 11)),
+                                ],
                               ),
                             ),
-                            // Delete staff button
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete_sweep,
-                                color: Colors.redAccent, // Red color for delete action
+                            // Tap status badge to toggle Active <-> Inactive
+                            GestureDetector(
+                              onTap: () => setState(() =>
+                                  _staff[index]['status'] = isActive ? 'Inactive' : 'Active'),
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: (isActive ? Colors.green : Colors.red)
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  isActive ? 'Active' : 'Inactive',
+                                  style: TextStyle(
+                                      color: isActive ? Colors.green : Colors.red,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold),
+                                ),
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  staffList.removeAt(index); // Remove staff from list
-                                });
-                              },
                             ),
                           ],
                         ),

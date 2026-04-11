@@ -1,0 +1,146 @@
+<mxfile>
+  <diagram name="HoloServe Use Case">
+    <mxGraphModel>
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- System Boundary -->
+        <mxCell id="2" value="HoloServe System" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#333333;strokeWidth=2;fontSize=16;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="700" height="780" as="geometry"/>
+        </mxCell>
+
+        <!-- Admin Actor -->
+        <mxCell id="10" value="Admin" style="shape=umlActor;fillColor=#ffffff;fontColor=#1A237E;strokeColor=#1A237E;fontSize=14;fontStyle=1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="55" y="220" width="60" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Staff Actor -->
+        <mxCell id="11" value="Staff" style="shape=umlActor;fillColor=#ffffff;fontColor=#1B5E20;strokeColor=#1B5E20;fontSize=14;fontStyle=1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="55" y="520" width="60" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Hologram Device Actor -->
+        <mxCell id="12" value="Hologram Device" style="shape=umlActor;fillColor=#ffffff;fontColor=#4A148C;strokeColor=#4A148C;fontSize=14;fontStyle=1;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="955" y="390" width="60" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Authentication Use Cases -->
+        <mxCell id="20" value="Login" style="ellipse;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="60" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="21" value="Sign Up" style="ellipse;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="60" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="22" value="Reset Password" style="ellipse;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="60" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="23" value="Logout" style="ellipse;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="800" y="60" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Admin Use Cases -->
+        <mxCell id="30" value="Manage Menu" style="ellipse;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="160" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="31" value="View Sales Reports" style="ellipse;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="160" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="32" value="Manage Staff" style="ellipse;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="160" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="33" value="View Analytics" style="ellipse;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="250" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="34" value="Manage Promotions" style="ellipse;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="250" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="35" value="Set AI Strategy" style="ellipse;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="250" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="36" value="Add New Admin" style="ellipse;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="340" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="37" value="System Settings" style="ellipse;fillColor=#FFF8E1;strokeColor=#F9A825;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="340" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Staff Use Cases -->
+        <mxCell id="40" value="Update Availability" style="ellipse;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="460" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="41" value="View Customer Feedback" style="ellipse;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="460" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="42" value="Manage Table Status" style="ellipse;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="460" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="43" value="View Order History" style="ellipse;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="550" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="44" value="View Profile" style="ellipse;fillColor=#E8F5E9;strokeColor=#388E3C;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="550" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Hologram Use Cases -->
+        <mxCell id="50" value="Toggle Power ON/OFF" style="ellipse;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="660" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="51" value="Set Volume and Language" style="ellipse;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="440" y="660" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="52" value="Edit Voice Scripts" style="ellipse;fillColor=#F3E5F5;strokeColor=#7B1FA2;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="660" width="140" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Admin Associations -->
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="20" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="21" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="22" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="23" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="30" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="31" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="32" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="33" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="34" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="35" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="36" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="37" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="50" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="51" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="10" target="52" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Staff Associations -->
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="20" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="21" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="22" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="23" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="30" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="40" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="41" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="42" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="43" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="44" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="50" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="51" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="11" target="52" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Hologram Device Associations -->
+        <mxCell style="edgeStyle=none;" edge="1" source="12" target="50" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="12" target="51" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell style="edgeStyle=none;" edge="1" source="12" target="52" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Include Relationships -->
+        <mxCell value="include" style="edgeStyle=none;dashed=1;endArrow=open;fontSize=11;" edge="1" source="30" target="20" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell value="include" style="edgeStyle=none;dashed=1;endArrow=open;fontSize=11;" edge="1" source="40" target="20" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell value="include" style="edgeStyle=none;dashed=1;endArrow=open;fontSize=11;" edge="1" source="42" target="20" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell value="include" style="edgeStyle=none;dashed=1;endArrow=open;fontSize=11;" edge="1" source="50" target="20" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Extend Relationships -->
+        <mxCell value="extend" style="edgeStyle=none;dashed=1;endArrow=open;fontSize=11;" edge="1" source="34" target="30" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell value="extend" style="edgeStyle=none;dashed=1;endArrow=open;fontSize=11;" edge="1" source="52" target="50" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
